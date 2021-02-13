@@ -141,11 +141,72 @@ class User extends Authenticatable
     }
     
     /**
+     * このユーザがお気に入りのmicropost。（ Userモデルとの関係を定義）
+     */
+    public function favorites()
+    {
+        return $this->belongsToMany(Micropost::class, 'favorites', 'user_id', 'micropost_id')->withTimestamps();
+    }
+    
+    
+    /**
      * このユーザに関係するモデルの件数をロードする。
      */
     public function loadRelationshipCounts()
     {
-        $this->loadCount(['microposts', 'followings', 'followers']);
+        $this->loadCount(['microposts', 'followings', 'followers', 'favorites']);
+    }
+    
+    /**
+     * $micropostoIdで指定された投稿を登録する。
+     *
+     * @param  int  $micropostoId
+     * @return bool
+     */
+    public function favorite($micropostoId)
+    {
+        // すでに登録しているかの確認
+        $exist = $this->is_favorite($micropostoId);
+        // 対象が自分自身かどうかの確認
+        //$its_me = $this->id == $micropostoId;
+
+        if ($exist) {
+            // すでに登録していれば何もしない
+            return false;
+        } else {
+            // 未登録であれば登録する
+            $this->favorites()->attach($micropostoId);
+            return true;
+        }
+    }
+    
+    /**
+     * $micropostoIdで指定された投稿を解除する。
+     *
+     * @param  int  $micropostoId
+     * @return bool
+     */
+    public function unfavorite($micropostoId)
+    {
+        // すでに登録しているかの確認
+        $exist = $this->is_favorite($micropostoId);
+        // 対象が自分自身かどうかの確認
+        //$its_me = $this->id == $micropostoId;
+
+        if ($exist) {
+            // すでに登録していればフォローを外す
+            $this->favorites()->detach($micropostoId);
+            return true;
+        } else {
+            // 未登録であれば何もしない
+            return false;
+        }
+    }
+    
+    public function is_favorite($micropostoId)
+    {
+        // 登録中の投稿の中に $micropostoIdのものが存在するか
+        return $this->favorites()->where('micropost_id', $micropostoId)->exists();
     }
     
 }
